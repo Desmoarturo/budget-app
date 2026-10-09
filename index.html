@@ -1,5 +1,259 @@
 <!DOCTYPE html>
-<html>
-<head><title>Budget App</title></head>
-<body><h1>Funziona!</h1></body>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Budget</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="app" class="app">
+
+    <!-- HOME -->
+    <div id="screen-home" class="screen active">
+      <header class="app-header">
+        <div class="header-top">
+          <div class="brand">
+            <span class="brand-icon">💚</span>
+            <span class="brand-name">Budget</span>
+          </div>
+          <div class="header-actions">
+            <button id="auth-btn" class="auth-btn" title="Accedi con Google">☁️ Accedi</button>
+            <button id="theme-toggle" class="icon-toggle" title="Tema">🌙</button>
+            <div class="month-picker-wrap">
+              <button id="month-prev" class="month-nav">‹</button>
+              <button id="month-current" class="month-current">
+                <span id="month-label">—</span>
+                <span id="month-badge" class="month-badge" style="display:none;">🔒</span>
+              </button>
+              <button id="month-next" class="month-nav">›</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div id="closed-banner" class="closed-banner" style="display:none;">
+        <span>🔒 Mese chiuso. Le modifiche restano possibili.</span>
+        <button id="btn-reopen-month">Riapri</button>
+      </div>
+
+      <div class="kpi-grid kpi-grid-4">
+        <div class="kpi-card"><div class="kpi-label">Stipendio</div><div class="kpi-value" id="kpi-income">0€</div></div>
+        <div class="kpi-card"><div class="kpi-label">Extra</div><div class="kpi-value" id="kpi-extra">0€</div></div>
+        <div class="kpi-card"><div class="kpi-label">Spese</div><div class="kpi-value" id="kpi-spent">0€</div></div>
+        <div class="kpi-card accent">
+          <div class="kpi-label">Risparmiato</div>
+          <div class="kpi-value" id="kpi-saved">0€</div>
+          <div class="kpi-note" id="kpi-saved-note"></div>
+        </div>
+      </div>
+
+      <div id="categories-list" class="categories-list"></div>
+
+      <div class="quick-actions">
+        <button id="btn-add-expense" class="qa-btn primary"><span class="qa-icon">＋</span><span>Aggiungi spesa</span></button>
+        <button id="btn-view-expenses" class="qa-btn"><span class="qa-icon">📋</span><span>Spese</span></button>
+        <button id="btn-view-incomes" class="qa-btn"><span class="qa-icon">💶</span><span>Redditi</span></button>
+        <button id="btn-recurring" class="qa-btn"><span class="qa-icon">🔁</span><span>Ricorrenti</span></button>
+        <button id="btn-copy-month" class="qa-btn"><span class="qa-icon">📑</span><span>Copia mese</span></button>
+        <button id="btn-dashboard" class="qa-btn"><span class="qa-icon">📈</span><span>Dashboard</span></button>
+        <button id="btn-history" class="qa-btn"><span class="qa-icon">📊</span><span>Storico</span></button>
+        <button id="btn-settings" class="qa-btn"><span class="qa-icon">⚙️</span><span>Impostazioni</span></button>
+        <button id="btn-close-month" class="qa-btn close-month-btn"><span class="qa-icon">🔒</span><span>Chiudi mese</span></button>
+      </div>
+    </div>
+
+    <!-- AGGIUNGI SPESA -->
+    <div id="screen-add" class="screen">
+      <header class="sub-header">
+        <button class="back-btn" id="btn-back-from-add">‹</button>
+        <h1>Nuova spesa</h1>
+      </header>
+      <div class="sub-header-info" id="add-month-info">—</div>
+      <div class="form-wrap">
+        <label class="form-label">Importo (€)</label>
+        <input type="number" id="expense-amount" placeholder="0,00" step="0.01" min="0" inputmode="decimal" class="big-input">
+        <label class="form-label">Sottocategoria</label>
+        <div id="subcategories-picker"></div>
+        <label class="form-label">Nota (opzionale)</label>
+        <input type="text" id="expense-note" placeholder="Es. cena con Marco" maxlength="120">
+        <div class="form-actions">
+          <button id="btn-save-expense" class="primary full">Salva spesa</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LISTA SPESE -->
+    <div id="screen-expenses" class="screen">
+      <header class="sub-header">
+        <button class="back-btn" id="btn-back-from-expenses">‹</button>
+        <h1>Spese</h1>
+      </header>
+      <div class="sub-header-info" id="expenses-month-info">—</div>
+      <div id="expenses-list" class="list-container"></div>
+    </div>
+
+    <!-- REDDITI -->
+    <div id="screen-income" class="screen">
+      <header class="sub-header">
+        <button class="back-btn" id="btn-back-from-incomes">‹</button>
+        <h1>Redditi</h1>
+      </header>
+      <div class="sub-header-info" id="incomes-month-info">—</div>
+      <h2 class="section-title">Stipendio / Reddito base</h2>
+      <div id="incomes-base-list" class="list-container"></div>
+      <button id="btn-add-income-base" class="full" style="margin-bottom:20px;">+ Aggiungi reddito base</button>
+      <h2 class="section-title">Extra (premi, rimborsi, fotovoltaico…)</h2>
+      <div id="incomes-extra-list" class="list-container"></div>
+      <button id="btn-add-income-extra" class="full">+ Aggiungi reddito extra</button>
+      <div class="total-row" style="margin-top:20px;">
+        <div>Stipendio: <strong id="income-display-base">0</strong> €</div>
+        <div>Extra: <strong id="income-display-extra">0</strong> €</div>
+        <div style="margin-top:6px;font-size:16px;">Totale mese: <strong id="income-display-big">0</strong> €</div>
+      </div>
+    </div>
+
+    <!-- RICORRENTI -->
+    <div id="screen-recurring" class="screen">
+      <header class="sub-header">
+        <button class="back-btn" id="btn-back-from-recurring">‹</button>
+        <h1>Spese ricorrenti</h1>
+      </header>
+      <div class="info-box">
+        ℹ️ Definisci una volta le spese fisse mensili (affitto, bollette, abbonamenti). Le applichi al mese con un tap.
+      </div>
+      <div id="recurring-list" class="list-container"></div>
+      <button id="btn-add-recurring" class="primary full" style="margin-top:12px;">+ Aggiungi ricorrente</button>
+      <button id="btn-apply-recurring" class="full" style="margin-top:8px;">📥 Applica al mese corrente</button>
+    </div>
+
+    <!-- STORICO -->
+    <div id="screen-history" class="screen">
+      <header class="sub-header">
+        <button class="back-btn" id="btn-back-from-history">‹</button>
+        <h1>Storico</h1>
+      </header>
+      <div id="history-list" class="list-container"></div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="screen-dashboard" class="screen">
+      <header class="sub-header">
+        <button class="back-btn" id="btn-back-from-dashboard">‹</button>
+        <h1>Dashboard</h1>
+      </header>
+
+      <div class="dash-section">
+        <h2 class="dash-title" id="dash-current-month">—</h2>
+        <div class="kpi-grid kpi-grid-4">
+          <div class="kpi-card"><div class="kpi-label">Stipendio</div><div class="kpi-value" id="dash-kpi-base">0€</div></div>
+          <div class="kpi-card"><div class="kpi-label">Extra</div><div class="kpi-value" id="dash-kpi-extra">0€</div></div>
+          <div class="kpi-card"><div class="kpi-label">Spese</div><div class="kpi-value" id="dash-kpi-spent">0€</div></div>
+          <div class="kpi-card accent"><div class="kpi-label">Risparmiato</div><div class="kpi-value" id="dash-kpi-saved">0€</div></div>
+        </div>
+      </div>
+
+      <div class="dash-section" id="annual-goal-section" style="display:none;">
+        <h2 class="dash-title">🎯 Obiettivo annuale <span id="annual-goal-year"></span></h2>
+        <div class="annual-goal-bar"><div class="annual-goal-fill" id="annual-goal-fill"></div></div>
+        <div class="annual-goal-info">
+          <span id="annual-goal-progress">—</span>
+          <span id="annual-goal-pct"></span>
+        </div>
+      </div>
+
+      <div class="dash-section">
+        <h2 class="dash-title">Ripartizione spese</h2>
+        <div class="donut-wrap">
+          <div id="donut-chart"></div>
+          <div id="donut-legend" class="donut-legend"></div>
+        </div>
+      </div>
+
+      <div class="dash-section">
+        <h2 class="dash-title">Andamento anno <span id="dash-year"></span></h2>
+        <div id="bar-chart" class="bar-chart"></div>
+        <div class="bar-legend">
+          <span><span class="legend-dot" style="background:#00b894"></span>Base</span>
+          <span><span class="legend-dot" style="background:#0984e3"></span>Svago</span>
+          <span><span class="legend-dot" style="background:#6c5ce7"></span>Risparmio</span>
+          <span><span class="legend-dot" style="background:#c8d3d9"></span>Extra lib.</span>
+        </div>
+      </div>
+
+      <div class="dash-section">
+        <h2 class="dash-title">Mesi</h2>
+        <div id="dash-months" class="dash-months"></div>
+      </div>
+    </div>
+
+    <!-- IMPOSTAZIONI -->
+    <div id="screen-settings" class="screen">
+      <header class="sub-header">
+        <button class="back-btn" id="btn-back-from-settings">‹</button>
+        <h1>Impostazioni</h1>
+      </header>
+
+      <div class="settings-section">
+        <h2>Percentuali categorie</h2>
+        <div class="info-box">
+          ℹ️ La norma consigliata è 50/30/20. Puoi modificarle liberamente.
+          La somma deve sempre fare 100%. Queste percentuali valgono per il mese corrente e per quelli futuri.
+        </div>
+        <div id="percentages-editor"></div>
+        <div class="total-row">
+          Totale: <span id="percent-total">100</span>%
+          <span id="percent-warning" class="warning"></span>
+        </div>
+        <div class="form-actions">
+          <button id="btn-save-percentages" class="primary full">Salva percentuali</button>
+          <button id="btn-reset-percentages" class="full">Ripristina 50/30/20</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2>Sub-budget sottocategorie</h2>
+        <div class="info-box">
+          ℹ️ Ogni categoria ha le sue sottocategorie. Imposta le percentuali (somma 100%) e personalizza nome, icona e ordine.
+        </div>
+        <div id="sub-budget-editor"></div>
+      </div>
+
+      <div class="settings-section">
+        <h2>Aggiungi categoria</h2>
+        <input type="text" id="new-cat-name" placeholder="Nome categoria">
+        <input type="number" id="new-cat-percent" placeholder="Percentuale (%)" min="0" max="100">
+        <button id="btn-add-category" class="full">+ Aggiungi categoria</button>
+      </div>
+
+      <div class="settings-section">
+        <h2>🎯 Obiettivo annuale di risparmio</h2>
+        <div class="info-box">
+          ℹ️ Imposta un importo totale da risparmiare nell'anno. Il progresso si vede in Dashboard.
+        </div>
+        <input type="number" id="annual-goal-input" placeholder="Es. 5000" min="0" step="100" inputmode="decimal">
+        <button id="btn-save-annual-goal" class="full">Salva obiettivo</button>
+      </div>
+
+      <div class="settings-section">
+        <h2>Backup</h2>
+        <button id="btn-export" class="full">⬇️ Esporta dati (JSON)</button>
+        <button id="btn-export-csv" class="full">📊 Esporta spese (CSV)</button>
+        <button id="btn-import" class="full">⬆️ Importa dati (JSON)</button>
+        <input type="file" id="import-file" accept=".json" style="display:none;">
+      </div>
+    </div>
+
+  </div>
+
+  <div class="auth-status-bar">
+    <span id="auth-status">⚠️ Non sincronizzato</span>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="drive.js"></script>
+  <script src="app.js"></script>
+</body>
 </html>
