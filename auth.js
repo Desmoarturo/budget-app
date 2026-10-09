@@ -3,7 +3,7 @@
 // ======================
 
 // >>> SOSTITUISCI QUESTO CON IL TUO CLIENT ID <<<
-const GOOGLE_CLIENT_ID = "1084093193215-v6rjpj7u436nerku64hce3q4uota65ph.apps.googleusercontent.com.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "1084093193215-v6rjpj7u436nerku64hce3q4uota65ph.apps.googleusercontent.com";
 
 const GOOGLE_SCOPES = "https://www.googleapis.com/auth/drive.appdata";
 
